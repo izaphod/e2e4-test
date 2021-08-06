@@ -96,6 +96,8 @@ class MapScreenFragment :
                 initLocationEngine()
                 enableLocationComponent(it)
                 updateCamera()
+            } else {
+                requestLocationAccess()
             }
         }
     }
@@ -104,9 +106,11 @@ class MapScreenFragment :
         val location = map.locationComponent.lastKnownLocation!!
         val position = CameraPosition.Builder()
             .target(LatLng(location.latitude, location.longitude))
-            .zoom(12.0)
+            .zoom(16.0)
+            .bearing(0.0)
+            .tilt(0.0)
             .build()
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), 1000)
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), 3000)
     }
 
     @SuppressLint("MissingPermission")
@@ -200,6 +204,12 @@ class MapScreenFragment :
             .show()
     }
 
+    private fun initListeners() {
+        binding.myLocationButton.setOnClickListener {
+            updateCamera()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Mapbox.getInstance(requireContext(), BuildConfig.MAPBOX_API_TOKEN)
@@ -222,6 +232,11 @@ class MapScreenFragment :
         subscribeToViewModel()
 
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initListeners()
     }
 
     override fun onStart() {
