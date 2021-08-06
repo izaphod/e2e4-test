@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">E2E4 Test</string>
+
+    <string name="permission_required">
+        Location services access is required to display nearby marks</string>
+    <string name="ok">OK</string>
+</resources>

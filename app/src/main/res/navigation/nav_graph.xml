@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/map_screen_fragment">
+
+    <fragment
+        android:id="@+id/map_screen_fragment"
+        android:name="com.example.e2e4test.presentation.mapscreen.MapScreenFragment"
+        android:label="Map Screen"
+        tools:layout="@layout/fragment_map_screen"/>
+</navigation>
