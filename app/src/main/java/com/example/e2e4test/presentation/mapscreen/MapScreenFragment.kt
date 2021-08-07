@@ -81,14 +81,15 @@ class MapScreenFragment :
                 result!!.lastLocation?.latitude,
                 result.lastLocation?.longitude
             )
+            Log.d(TAG, "locationEngineCallback.onSuccess: ${result.lastLocation}")
         }
+
         override fun onFailure(exception: Exception) {
             Log.e(TAG, "locationEngineCallback.onFailure: ", exception)
         }
     }
 
     override fun onMapReady(mapboxMap: MapboxMap) {
-        Log.d(TAG, "onMapReady")
         map = mapboxMap
         map.setStyle(Style.OUTDOORS) {
             requestLocationAccess()
@@ -96,10 +97,12 @@ class MapScreenFragment :
                 initLocationEngine()
                 enableLocationComponent(it)
                 updateCamera()
+                subscribeToViewModel()
             } else {
                 requestLocationAccess()
             }
         }
+        Log.d(TAG, "onMapReady")
     }
 
     private fun updateCamera() {
@@ -111,6 +114,7 @@ class MapScreenFragment :
             .tilt(0.0)
             .build()
         map.animateCamera(CameraUpdateFactory.newCameraPosition(position), 3000)
+        Log.d(TAG, "updateCamera")
     }
 
     @SuppressLint("MissingPermission")
@@ -122,6 +126,7 @@ class MapScreenFragment :
             .build()
         locationEngine.requestLocationUpdates(request, locationEngineCallback, getMainLooper())
         locationEngine.getLastLocation(locationEngineCallback)
+        Log.d(TAG, "initLocationEngine")
     }
 
     @SuppressLint("MissingPermission")
@@ -133,6 +138,7 @@ class MapScreenFragment :
         locationComponent.isLocationComponentEnabled = true
         locationComponent.cameraMode = CameraMode.TRACKING
         locationComponent.renderMode = RenderMode.COMPASS
+        Log.d(TAG, "enableLocationComponent")
     }
 
     private fun subscribeToViewModel() {
@@ -141,25 +147,30 @@ class MapScreenFragment :
                 .observePlacesViewModel()
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { placesViewModel ->
-                    Log.d(TAG,
-                        "subscribeToViewModel: Marker names = ${
-                            placesViewModel.places.joinToString(
-                                "\n",
-                                "\n"
-                            ) { it.name }
-                        }")
-                    updateMarkers(placesViewModel)
-                }
+                .subscribe(
+                    { placesViewModel ->
+                        Log.d(TAG,
+                            "subscribeToViewModel: Marker names = ${
+                                placesViewModel.places.joinToString(
+                                    "\n",
+                                    "\n"
+                                ) { it.name }
+                            }")
+                        updateMarkers(placesViewModel)
+                    },
+                    { Log.e(TAG, "subscribeToViewModel:", it) }
+                )
+            Log.d(TAG, "subscribeToViewModel")
         }
     }
 
     private fun unsubscribeFromViewModel() {
         viewModelDisposable?.dispose()
+        Log.d(TAG, "unsubscribeFromViewModel")
     }
 
     private fun updateMarkers(placesViewModel: PlacesViewModel) {
-        map.setStyle(Style.MAPBOX_STREETS) { _ ->
+        map.setStyle(Style.OUTDOORS) { _ ->
             markerViewManager = MarkerViewManager(binding.mapView, map)
             markerViewManager?.let {
                 placesViewModel.places.forEach { placeModel ->
@@ -173,6 +184,7 @@ class MapScreenFragment :
                 updateCamera()
             }
         }
+        Log.d(TAG, "updateMarkers")
     }
 
     private fun requestLocationAccess() {
@@ -213,6 +225,7 @@ class MapScreenFragment :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Mapbox.getInstance(requireContext(), BuildConfig.MAPBOX_API_TOKEN)
+        Log.d(TAG, "onCreate")
     }
 
     override fun onAttach(context: Context) {
@@ -229,20 +242,20 @@ class MapScreenFragment :
 
         binding.mapView.onCreate(savedInstanceState)
         binding.mapView.getMapAsync(this)
-        subscribeToViewModel()
 
+        Log.d(TAG, "onCreateView")
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initListeners()
+        Log.d(TAG, "onViewCreated")
     }
 
     override fun onStart() {
         super.onStart()
         binding.mapView.onStart()
-        subscribeToViewModel()
     }
 
     override fun onResume() {
@@ -265,6 +278,7 @@ class MapScreenFragment :
         super.onDestroyView()
         locationEngine.removeLocationUpdates(locationEngineCallback)
         binding.mapView.onDestroy()
+        Log.d(TAG, "onDestroyView")
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
