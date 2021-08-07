@@ -60,14 +60,11 @@ class MapScreenFragment :
     private lateinit var locationEngine: LocationEngine
     private var markerViewManager: MarkerViewManager? = null
 
-    private var isLocationGranted = false
-    private var isSubscribed = false
-
     // TODO: 8/6/21 Разобраться с permissions
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
-                isLocationGranted = true
+                binding.mapView.getMapAsync(this)
                 Toast.makeText(context, getString(R.string.permission_granted), Toast.LENGTH_SHORT)
                     .show()
             } else {
@@ -82,7 +79,7 @@ class MapScreenFragment :
                 result!!.lastLocation?.latitude,
                 result.lastLocation?.longitude
             )
-            Log.d(TAG, "locationEngineCallback.onSuccess: ${result.lastLocation}")
+            Log.d(TAG, "locationEngineCallback.onSuccess: ${result.lastLocation.toString()}")
         }
 
         override fun onFailure(exception: Exception) {
@@ -92,36 +89,18 @@ class MapScreenFragment :
 
     override fun onMapReady(mapboxMap: MapboxMap) {
         map = mapboxMap
-        map.setStyle(Style.OUTDOORS) {
-            requestLocationAccess()
-            if (isLocationGranted) {
+        setupMap()
+        Log.d(TAG, "onMapReady")
+    }
+
+    private fun setupMap() {
+        if (requestLocationAccess()) {
+            map.setStyle(Style.OUTDOORS) {
                 initLocationEngine()
                 enableLocationComponent(it)
                 updateCamera()
                 subscribeToViewModel()
-            } else {
-                requestLocationAccess()
             }
-        }
-        Log.d(TAG, "onMapReady")
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun updateCamera() {
-        requestLocationAccess()
-        if (isLocationGranted) {
-            if (!map.locationComponent.isLocationComponentActivated) {
-                enableLocationComponent(map.style!!)
-            }
-            val location = map.locationComponent.lastKnownLocation!!
-            val position = CameraPosition.Builder()
-                .target(LatLng(location.latitude, location.longitude))
-                .zoom(CAMERA_ZOOM)
-                .bearing(0.0)
-                .tilt(0.0)
-                .build()
-            map.animateCamera(CameraUpdateFactory.newCameraPosition(position), CAMERA_ANIMATE_DURATION)
-            Log.d(TAG, "updateCamera")
         }
     }
 
@@ -149,10 +128,25 @@ class MapScreenFragment :
         Log.d(TAG, "enableLocationComponent")
     }
 
+    @SuppressLint("MissingPermission")
+    private fun updateCamera() {
+        val location = map.locationComponent.lastKnownLocation!!
+        val position = CameraPosition.Builder()
+            .target(LatLng(location.latitude, location.longitude))
+            .zoom(CAMERA_ZOOM)
+            .bearing(0.0)
+            .tilt(0.0)
+            .build()
+        map.animateCamera(
+            CameraUpdateFactory.newCameraPosition(position),
+            CAMERA_ANIMATE_DURATION
+        )
+        Log.d(TAG, "updateCamera")
+    }
+
     // TODO: 8/7/21 subscribe to viewModel after view recreated and location permission granted
     private fun subscribeToViewModel() {
         if (viewModelDisposable == null) {
-            isSubscribed = true
             viewModelDisposable = presenter
                 .observePlacesViewModel()
                 .distinctUntilChanged()
@@ -176,7 +170,6 @@ class MapScreenFragment :
 
     private fun unsubscribeFromViewModel() {
         viewModelDisposable?.dispose()
-        isSubscribed = false
         Log.d(TAG, "unsubscribeFromViewModel")
     }
 
@@ -185,7 +178,7 @@ class MapScreenFragment :
             binding.loading.isVisible = (state is State.Loading)
             when (state) {
                 is State.Error -> {
-                    Snackbar.make(binding.root, state.message, Snackbar.LENGTH_LONG)
+                    Snackbar.make(binding.root, state.message, Snackbar.LENGTH_INDEFINITE)
                         .setAction(getString(R.string.ok)) { }
                         .show()
                 }
@@ -213,32 +206,36 @@ class MapScreenFragment :
                     }
                     Log.d(TAG, "updateMarkers")
                 }
-                is State.Loading -> {  }
+                is State.Loading -> {
+                }
             }
         }
     }
 
-    private fun requestLocationAccess() {
+    private fun requestLocationAccess(): Boolean {
         when {
             ContextCompat.checkSelfPermission(
                 requireContext(),
                 LOCATION_PERMISSION
             ) == PackageManager.PERMISSION_GRANTED -> {
-                isLocationGranted = true
+                return true
             }
             shouldShowRequestPermissionRationale(LOCATION_PERMISSION) -> {
-                showPermissionRationaleActionSnackbar()
+                showPermissionRationale()
+                return false
             }
             !shouldShowRequestPermissionRationale(LOCATION_PERMISSION) -> {
                 Toast.makeText(context, getString(R.string.do_not_ask), Toast.LENGTH_LONG).show()
+                return false
             }
             else -> {
                 requestPermissionLauncher.launch(LOCATION_PERMISSION)
+                return false
             }
         }
     }
 
-    private fun showPermissionRationaleActionSnackbar() {
+    private fun showPermissionRationale() {
         Snackbar.make(
             binding.root,
             getString(R.string.permission_required),
@@ -252,7 +249,13 @@ class MapScreenFragment :
 
     private fun initListeners() {
         binding.myLocationButton.setOnClickListener {
-            updateCamera()
+            if (!map.locationComponent.isLocationComponentActivated) {
+                setupMap()
+            } else {
+                if (requestLocationAccess()) {
+                    updateCamera()
+                }
+            }
         }
     }
 

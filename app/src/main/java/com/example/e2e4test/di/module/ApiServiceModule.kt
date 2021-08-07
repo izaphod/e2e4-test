@@ -21,7 +21,7 @@ class ApiServiceModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit = Retrofit.Builder()
-        .baseUrl("https://maps.googleapis.com/maps/api/place/nearbysearch/")
+        .baseUrl(BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
@@ -35,5 +35,9 @@ class ApiServiceModule {
         logging.level = HttpLoggingInterceptor.Level.BASIC
         httpClient.addInterceptor(logging)
         return httpClient.build()
+    }
+
+    companion object {
+        private const val BASE_URL = "http://api.positionstack.com/v1/"
     }
 }
