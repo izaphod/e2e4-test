@@ -21,7 +21,7 @@ class ApiServiceModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit = Retrofit.Builder()
-        .baseUrl("http://api.positionstack.com/v1/")
+        .baseUrl("https://maps.googleapis.com/maps/api/place/nearbysearch/")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .addCallAdapterFactory(RxJava3CallAdapterFactory.create())

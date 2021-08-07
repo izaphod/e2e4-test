@@ -22,7 +22,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "MAPBOX_API_TOKEN", "\"" + localProperties['MAPBOX_DOWNLOADS_TOKEN'] + "\""
-        buildConfigField "String", "PLACES_API_KEY", "\"" + localProperties['POSITIONSTACK_API_KEY'] + "\""
+        buildConfigField "String", "PLACES_API_KEY", "\"" + localProperties['PLACES_API_KEY'] + "\""
     }
     buildTypes {
         release {

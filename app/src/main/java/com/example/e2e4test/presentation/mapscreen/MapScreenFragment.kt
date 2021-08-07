@@ -13,11 +13,13 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import com.example.e2e4test.BuildConfig
 import com.example.e2e4test.R
 import com.example.e2e4test.TestApplication
 import com.example.e2e4test.databinding.FragmentMapScreenBinding
 import com.example.e2e4test.presentation.model.PlacesViewModel
+import com.example.e2e4test.presentation.model.State
 import com.google.android.material.snackbar.Snackbar
 import com.mapbox.android.core.location.*
 import com.mapbox.mapboxsdk.Mapbox
@@ -59,18 +61,17 @@ class MapScreenFragment :
     private var markerViewManager: MarkerViewManager? = null
 
     private var isLocationGranted = false
-    private var shouldShowRationale = false
+    private var isSubscribed = false
 
     // TODO: 8/6/21 Разобраться с permissions
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
                 isLocationGranted = true
-                Toast.makeText(context, "Location permission granted", Toast.LENGTH_SHORT)
+                Toast.makeText(context, getString(R.string.permission_granted), Toast.LENGTH_SHORT)
                     .show()
             } else {
-                shouldShowRationale = true
-                Toast.makeText(context, "Location permission declined", Toast.LENGTH_SHORT)
+                Toast.makeText(context, getString(R.string.permission_denied), Toast.LENGTH_SHORT)
                     .show()
             }
         }
@@ -105,16 +106,23 @@ class MapScreenFragment :
         Log.d(TAG, "onMapReady")
     }
 
+    @SuppressLint("MissingPermission")
     private fun updateCamera() {
-        val location = map.locationComponent.lastKnownLocation!!
-        val position = CameraPosition.Builder()
-            .target(LatLng(location.latitude, location.longitude))
-            .zoom(CAMERA_ZOOM)
-            .bearing(0.0)
-            .tilt(0.0)
-            .build()
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), CAMERA_ANIMATE_DURATION)
-        Log.d(TAG, "updateCamera")
+        requestLocationAccess()
+        if (isLocationGranted) {
+            if (!map.locationComponent.isLocationComponentActivated) {
+                enableLocationComponent(map.style!!)
+            }
+            val location = map.locationComponent.lastKnownLocation!!
+            val position = CameraPosition.Builder()
+                .target(LatLng(location.latitude, location.longitude))
+                .zoom(CAMERA_ZOOM)
+                .bearing(0.0)
+                .tilt(0.0)
+                .build()
+            map.animateCamera(CameraUpdateFactory.newCameraPosition(position), CAMERA_ANIMATE_DURATION)
+            Log.d(TAG, "updateCamera")
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -141,8 +149,10 @@ class MapScreenFragment :
         Log.d(TAG, "enableLocationComponent")
     }
 
+    // TODO: 8/7/21 subscribe to viewModel after view recreated and location permission granted
     private fun subscribeToViewModel() {
         if (viewModelDisposable == null) {
+            isSubscribed = true
             viewModelDisposable = presenter
                 .observePlacesViewModel()
                 .distinctUntilChanged()
@@ -166,27 +176,46 @@ class MapScreenFragment :
 
     private fun unsubscribeFromViewModel() {
         viewModelDisposable?.dispose()
+        isSubscribed = false
         Log.d(TAG, "unsubscribeFromViewModel")
     }
 
     private fun updateMarkers(placesViewModel: PlacesViewModel) {
-        map.setStyle(Style.OUTDOORS) { _ ->
-            markerViewManager = MarkerViewManager(binding.mapView, map)
-            markerViewManager?.let {
-                placesViewModel.places.forEach { placeModel ->
-                    val markerIcon = CustomMarkerView().create(requireContext()) {
-                        Toast.makeText(context, placeModel.name, Toast.LENGTH_SHORT).show()
-                    }
-                    val markerView = MarkerView(
-                        LatLng(placeModel.latitude, placeModel.longitude),
-                        markerIcon
-                    )
-                    it.addMarker(markerView)
+        with(placesViewModel) {
+            binding.loading.isVisible = (state is State.Loading)
+            when (state) {
+                is State.Error -> {
+                    Snackbar.make(binding.root, state.message, Snackbar.LENGTH_LONG)
+                        .setAction(getString(R.string.ok)) { }
+                        .show()
                 }
-                updateCamera()
+                is State.Empty -> {
+                    Toast.makeText(context, getString(R.string.empty), Toast.LENGTH_SHORT)
+                        .show()
+                }
+                is State.Content -> {
+                    map.setStyle(Style.OUTDOORS) { _ ->
+                        markerViewManager = MarkerViewManager(binding.mapView, map)
+                        markerViewManager?.let {
+                            places.forEach { placeModel ->
+                                val markerIcon = CustomMarkerView().create(requireContext()) {
+                                    Toast.makeText(context, placeModel.name, Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                                val markerView = MarkerView(
+                                    LatLng(placeModel.latitude, placeModel.longitude),
+                                    markerIcon
+                                )
+                                it.addMarker(markerView)
+                            }
+                            updateCamera()
+                        }
+                    }
+                    Log.d(TAG, "updateMarkers")
+                }
+                is State.Loading -> {  }
             }
         }
-        Log.d(TAG, "updateMarkers")
     }
 
     private fun requestLocationAccess() {
@@ -199,6 +228,9 @@ class MapScreenFragment :
             }
             shouldShowRequestPermissionRationale(LOCATION_PERMISSION) -> {
                 showPermissionRationaleActionSnackbar()
+            }
+            !shouldShowRequestPermissionRationale(LOCATION_PERMISSION) -> {
+                Toast.makeText(context, getString(R.string.do_not_ask), Toast.LENGTH_LONG).show()
             }
             else -> {
                 requestPermissionLauncher.launch(LOCATION_PERMISSION)

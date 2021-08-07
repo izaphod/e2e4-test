@@ -1,7 +1,15 @@
 <resources>
     <string name="app_name">E2E4 Test</string>
 
+    <!--Map Screen start-->
     <string name="permission_required">
-        Location services access is required to display nearby marks</string>
+        Location services access is required to display your locations and nearby places</string>
+    <string name="permission_denied">
+        Location services permission denied.</string>
+    <string name="permission_granted">Location services permission granted</string>
+    <string name="do_not_ask">To use app grant access to location services</string>
     <string name="ok">OK</string>
+    <string name="empty">Nearby places not found</string>
+    <!--Map Screen end-->
+
 </resources>

@@ -7,6 +7,7 @@ import com.example.e2e4test.data.network.model.asDomain
 import com.example.e2e4test.domain.model.PlaceModel
 import com.example.e2e4test.presentation.model.PlacesViewModel
 import com.example.e2e4test.presentation.model.State
+import com.mapbox.mapboxsdk.geometry.LatLng
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
@@ -22,6 +23,7 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     private val placesSubject: BehaviorSubject<PlacesViewModel> = BehaviorSubject.create()
 
     private var loadPlacesDisposable: Disposable? = null
+    private var lastLocation = LatLng()
 
     override fun onFirstViewAttach() {
         super.onFirstViewAttach()
@@ -37,16 +39,21 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     fun onLocationUpdated(latitude: Double?, longitude: Double?) {
         Log.d(TAG, "onLocationChanged: $latitude, $longitude")
         if (latitude != null && longitude != null) {
-            loadPlaces(latitude, longitude)
+            if (latitude != lastLocation.latitude && longitude != lastLocation.longitude) {
+                lastLocation.latitude = latitude
+                lastLocation.longitude = longitude
+                loadPlaces(lastLocation)
+            }
         }
     }
 
-    private fun loadPlaces(latitude: Double, longitude: Double) {
+    private fun loadPlaces(latLng: LatLng) {
         loadPlacesDisposable?.dispose()
-        val query = "$latitude,$longitude"
-        loadPlacesDisposable = apiService.getPlaces(BuildConfig.PLACES_API_KEY, query)
+        val query = "${latLng.latitude},${latLng.longitude}"
+        loadPlacesDisposable = apiService
+            .searchNearbyPlaces(BuildConfig.PLACES_API_KEY, query, SEARCH_RADIUS)
             .subscribeOn(Schedulers.io())
-            .map { it.data.asDomain() }
+            .map { it.results.asDomain() }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { places -> updatePlaces(places) },
@@ -83,5 +90,6 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
 
     companion object {
         private const val TAG = "MapScreenPresenter"
+        private const val SEARCH_RADIUS = 10000
     }
 }
