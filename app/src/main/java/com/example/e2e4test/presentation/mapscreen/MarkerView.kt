@@ -7,29 +7,21 @@ import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
-import android.widget.TextView
-import androidx.core.view.isVisible
 import com.example.e2e4test.R
-import com.example.e2e4test.domain.model.PlaceModel
 
 class CustomMarkerView {
 
     @SuppressLint("InflateParams")
-    fun create(context: Context, place: PlaceModel): View {
+    fun create(context: Context, onCLick: (view: View) -> Unit): View {
         val customMarkerView =
             LayoutInflater.from(context).inflate(R.layout.marker_view, null)
         customMarkerView.layoutParams =
             ConstraintLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
         val icon = customMarkerView.findViewById<ImageView>(R.id.marker_icon)
-        val name = customMarkerView.findViewById<TextView>(R.id.marker_name)
-        icon.setOnClickListener {
-            if (name.isVisible) {
-                name.visibility = View.GONE
-            } else {
-                name.text = place.name
-                name.visibility = View.VISIBLE
-            }
+        val onMarkerClickListener = View.OnClickListener {
+            onCLick(it)
         }
+        icon.setOnClickListener(onMarkerClickListener)
         return customMarkerView
     }
 }

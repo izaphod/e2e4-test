@@ -109,20 +109,20 @@ class MapScreenFragment :
         val location = map.locationComponent.lastKnownLocation!!
         val position = CameraPosition.Builder()
             .target(LatLng(location.latitude, location.longitude))
-            .zoom(16.0)
+            .zoom(CAMERA_ZOOM)
             .bearing(0.0)
             .tilt(0.0)
             .build()
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), 3000)
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), CAMERA_ANIMATE_DURATION)
         Log.d(TAG, "updateCamera")
     }
 
     @SuppressLint("MissingPermission")
     private fun initLocationEngine() {
         locationEngine = LocationEngineProvider.getBestLocationEngine(requireContext())
-        val request = LocationEngineRequest.Builder(1000L)
+        val request = LocationEngineRequest.Builder(LOCATION_UPDATE_INTERVAL)
             .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
-            .setMaxWaitTime(5000L)
+            .setMaxWaitTime(MAX_WAIT_TIME)
             .build()
         locationEngine.requestLocationUpdates(request, locationEngineCallback, getMainLooper())
         locationEngine.getLastLocation(locationEngineCallback)
@@ -147,10 +147,11 @@ class MapScreenFragment :
                 .observePlacesViewModel()
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { Log.d(TAG, "subscribeToViewModel.doOnSubscribe") }
                 .subscribe(
                     { placesViewModel ->
                         Log.d(TAG,
-                            "subscribeToViewModel: Marker names = ${
+                            "subscribeToViewModel.doOnNext: Marker names = ${
                                 placesViewModel.places.joinToString(
                                     "\n",
                                     "\n"
@@ -158,9 +159,8 @@ class MapScreenFragment :
                             }")
                         updateMarkers(placesViewModel)
                     },
-                    { Log.e(TAG, "subscribeToViewModel:", it) }
+                    { Log.e(TAG, "subscribeToViewModel.doOnError:", it) }
                 )
-            Log.d(TAG, "subscribeToViewModel")
         }
     }
 
@@ -174,7 +174,9 @@ class MapScreenFragment :
             markerViewManager = MarkerViewManager(binding.mapView, map)
             markerViewManager?.let {
                 placesViewModel.places.forEach { placeModel ->
-                    val markerIcon = CustomMarkerView().create(requireContext(), placeModel)
+                    val markerIcon = CustomMarkerView().create(requireContext()) {
+                        Toast.makeText(context, placeModel.name, Toast.LENGTH_SHORT).show()
+                    }
                     val markerView = MarkerView(
                         LatLng(placeModel.latitude, placeModel.longitude),
                         markerIcon
@@ -299,5 +301,9 @@ class MapScreenFragment :
     companion object {
         private const val TAG = "MapScreenFragment"
         private const val LOCATION_PERMISSION = Manifest.permission.ACCESS_FINE_LOCATION
+        private const val CAMERA_ZOOM = 15.0
+        private const val CAMERA_ANIMATE_DURATION = 3000
+        private const val LOCATION_UPDATE_INTERVAL = 1000L
+        private const val MAX_WAIT_TIME = LOCATION_UPDATE_INTERVAL * 5
     }
 }
