@@ -23,7 +23,7 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     private val placesSubject: BehaviorSubject<PlacesViewModel> = BehaviorSubject.create()
 
     private var loadPlacesDisposable: Disposable? = null
-    private var lastLocation = LatLng()
+    private var currentLocation = LatLng()
 
     override fun onFirstViewAttach() {
         super.onFirstViewAttach()
@@ -39,10 +39,10 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     fun onLocationUpdated(latitude: Double?, longitude: Double?) {
         Log.d(TAG, "onLocationChanged: $latitude, $longitude")
         if (latitude != null && longitude != null) {
-            if (latitude != lastLocation.latitude && longitude != lastLocation.longitude) {
-                lastLocation.latitude = latitude
-                lastLocation.longitude = longitude
-                loadPlaces(lastLocation)
+            val lastLocation = LatLng(latitude, longitude)
+            if (lastLocation.distanceTo(currentLocation) > LOCATION_THRESHOLD_IN_METERS) {
+                currentLocation = lastLocation
+                loadPlaces(currentLocation)
             }
         }
     }
@@ -91,5 +91,6 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     companion object {
         private const val TAG = "MapScreenPresenter"
         private const val SEARCH_RADIUS = 10000
+        private const val LOCATION_THRESHOLD_IN_METERS = 50
     }
 }
