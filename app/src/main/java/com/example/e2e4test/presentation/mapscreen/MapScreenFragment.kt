@@ -18,6 +18,7 @@ import com.example.e2e4test.BuildConfig
 import com.example.e2e4test.R
 import com.example.e2e4test.TestApplication
 import com.example.e2e4test.databinding.FragmentMapScreenBinding
+import com.example.e2e4test.domain.model.PlaceModel
 import com.example.e2e4test.presentation.model.PlacesViewModel
 import com.example.e2e4test.presentation.model.State
 import com.google.android.material.snackbar.Snackbar
@@ -144,6 +145,47 @@ class MapScreenFragment :
         Log.d(TAG, "updateCamera")
     }
 
+    private fun updateMarkers(placesViewModel: PlacesViewModel) {
+        with(placesViewModel) {
+            binding.loading.isVisible = (state is State.Loading)
+            when (state) {
+                is State.Error -> {
+                    Snackbar.make(binding.root, state.message, Snackbar.LENGTH_INDEFINITE)
+                        .setAction(getString(R.string.ok)) { }
+                        .show()
+                    Log.e(TAG, "updateMarkers.Error: ${state.message}")
+                }
+                is State.Empty -> {
+                    Toast.makeText(context, getString(R.string.empty), Toast.LENGTH_SHORT)
+                        .show()
+                    Log.d(TAG, "updateMarkers.Empty")
+                }
+                is State.Content -> {
+                    map.addOnCameraIdleListener { addMarkers(places) }
+                    Log.d(TAG, "updateMarkers.Content")
+                }
+                is State.Loading -> {
+                    Log.d(TAG, "updateMarkers.Loading")
+                }
+            }
+        }
+    }
+
+    private fun addMarkers(places: List<PlaceModel>) {
+        if (markerViewManager == null) {
+            markerViewManager = MarkerViewManager(binding.mapView, map)
+        }
+        markerViewManager?.let {
+            places.forEach { place ->
+                val markerIcon = CustomMarkerView().create(requireContext()) {
+                    Toast.makeText(context, place.name, Toast.LENGTH_SHORT)
+                        .show()
+                }
+                it.addMarker(MarkerView(LatLng(place.latitude, place.longitude), markerIcon))
+            }
+        }
+    }
+
     // TODO: 8/7/21 subscribe to viewModel after view recreated and location permission granted
     private fun subscribeToViewModel() {
         if (viewModelDisposable == null) {
@@ -171,45 +213,6 @@ class MapScreenFragment :
     private fun unsubscribeFromViewModel() {
         viewModelDisposable?.dispose()
         Log.d(TAG, "unsubscribeFromViewModel")
-    }
-
-    private fun updateMarkers(placesViewModel: PlacesViewModel) {
-        with(placesViewModel) {
-            binding.loading.isVisible = (state is State.Loading)
-            when (state) {
-                is State.Error -> {
-                    Snackbar.make(binding.root, state.message, Snackbar.LENGTH_INDEFINITE)
-                        .setAction(getString(R.string.ok)) { }
-                        .show()
-                }
-                is State.Empty -> {
-                    Toast.makeText(context, getString(R.string.empty), Toast.LENGTH_SHORT)
-                        .show()
-                }
-                is State.Content -> {
-                    map.setStyle(Style.OUTDOORS) { _ ->
-                        markerViewManager = MarkerViewManager(binding.mapView, map)
-                        markerViewManager?.let {
-                            places.forEach { placeModel ->
-                                val markerIcon = CustomMarkerView().create(requireContext()) {
-                                    Toast.makeText(context, placeModel.name, Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                                val markerView = MarkerView(
-                                    LatLng(placeModel.latitude, placeModel.longitude),
-                                    markerIcon
-                                )
-                                it.addMarker(markerView)
-                            }
-                            updateCamera()
-                        }
-                    }
-                    Log.d(TAG, "updateMarkers")
-                }
-                is State.Loading -> {
-                }
-            }
-        }
     }
 
     private fun requestLocationAccess(): Boolean {
@@ -241,9 +244,7 @@ class MapScreenFragment :
             getString(R.string.permission_required),
             Snackbar.LENGTH_INDEFINITE
         )
-            .setAction(getString(R.string.ok)) {
-                requestPermissionLauncher.launch(LOCATION_PERMISSION)
-            }
+            .setAction(getString(R.string.ok)) { requestPermissionLauncher.launch(LOCATION_PERMISSION) }
             .show()
     }
 
@@ -314,6 +315,7 @@ class MapScreenFragment :
     override fun onDestroyView() {
         super.onDestroyView()
         locationEngine.removeLocationUpdates(locationEngineCallback)
+        markerViewManager = null
         binding.mapView.onDestroy()
         Log.d(TAG, "onDestroyView")
     }
