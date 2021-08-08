@@ -7,9 +7,10 @@ import retrofit2.http.Query
 
 interface ApiService {
 
-    @GET("reverse")
+    @GET("place/nearbysearch/json?")
     fun searchNearbyPlaces(
-        @Query("access_key") accessKey: String,
-        @Query("query") query: String
+        @Query("location") location: String,
+        @Query("radius") radius: Int,
+        @Query("key") key: String
     ): Single<PlaceResponseList>
 }

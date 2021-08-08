@@ -11,4 +11,4 @@
 Результат выложить на github или bitbucket.  
 
 ***
-В качестве API для координат использовано Positionstack API
+В качестве API для получения меток использовано Google Places API

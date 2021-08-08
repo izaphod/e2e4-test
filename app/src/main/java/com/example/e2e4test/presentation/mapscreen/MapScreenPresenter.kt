@@ -49,11 +49,11 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
 
     private fun loadPlaces(latLng: LatLng) {
         loadPlacesDisposable?.dispose()
-        val query = "${latLng.latitude},${latLng.longitude}"
+        val location = "${latLng.latitude},${latLng.longitude}"
         loadPlacesDisposable = apiService
-            .searchNearbyPlaces(BuildConfig.PLACES_API_KEY, query)
+            .searchNearbyPlaces(location, SEARCH_RADIUS, BuildConfig.PLACES_API_KEY)
             .subscribeOn(Schedulers.io())
-            .map { it.data.asDomain() }
+            .map { it.results.asDomain() }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { places -> updatePlaces(places) },

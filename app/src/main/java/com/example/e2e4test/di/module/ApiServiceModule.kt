@@ -38,6 +38,7 @@ class ApiServiceModule {
     }
 
     companion object {
-        private const val BASE_URL = "http://api.positionstack.com/v1/"
+        private const val BASE_URL = "https://maps.googleapis.com/maps/api/"
+//        private const val BASE_URL = "http://api.positionstack.com/v1/"
     }
 }
