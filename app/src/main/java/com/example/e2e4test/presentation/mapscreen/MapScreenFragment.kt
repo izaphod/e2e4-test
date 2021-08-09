@@ -61,7 +61,6 @@ class MapScreenFragment :
     private lateinit var locationEngine: LocationEngine
     private var markerViewManager: MarkerViewManager? = null
 
-    // TODO: 8/6/21 Разобраться с permissions
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -186,7 +185,6 @@ class MapScreenFragment :
         }
     }
 
-    // TODO: 8/7/21 subscribe to viewModel after view recreated and location permission granted
     private fun subscribeToViewModel() {
         if (viewModelDisposable == null) {
             viewModelDisposable = presenter

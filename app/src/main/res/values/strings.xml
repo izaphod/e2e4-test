@@ -7,7 +7,7 @@
     <string name="permission_denied">
         Location services permission denied.</string>
     <string name="permission_granted">Location services permission granted</string>
-    <string name="do_not_ask">To use app grant access to location services</string>
+    <string name="do_not_ask">To use app features grant access to Location services</string>
     <string name="ok">OK</string>
     <string name="empty">Nearby places not found</string>
     <!--Map Screen end-->

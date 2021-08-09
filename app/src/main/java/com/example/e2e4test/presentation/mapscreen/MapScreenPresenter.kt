@@ -37,13 +37,13 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     fun observePlacesViewModel(): Observable<PlacesViewModel> = placesSubject
 
     fun onLocationUpdated(latitude: Double?, longitude: Double?) {
-        Log.d(TAG, "onLocationChanged: $latitude, $longitude")
         if (latitude != null && longitude != null) {
             val lastLocation = LatLng(latitude, longitude)
             if (lastLocation.distanceTo(currentLocation) > LOCATION_THRESHOLD_IN_METERS) {
                 currentLocation = lastLocation
                 loadPlaces(currentLocation)
             }
+            Log.d(TAG, "onLocationChanged: $latitude, $longitude")
         }
     }
 
@@ -53,7 +53,7 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
         loadPlacesDisposable = apiService
             .searchNearbyPlaces(location, SEARCH_RADIUS, BuildConfig.PLACES_API_KEY)
             .subscribeOn(Schedulers.io())
-            .map { it.results.asDomain() }
+            .map { placeResponseList -> placeResponseList.results.asDomain() }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { places -> updatePlaces(places) },
@@ -68,17 +68,11 @@ class MapScreenPresenter @Inject constructor(private val apiService: ApiService)
     private fun updatePlaces(places: List<PlaceModel>) {
         if (places.isEmpty()) {
             updatePlacesViewModel {
-                copy(
-                    state = State.Empty,
-                    places = emptyList()
-                )
+                copy(state = State.Empty, places = emptyList())
             }
         } else {
             updatePlacesViewModel {
-                copy(
-                    state = State.Content,
-                    places = places
-                )
+                copy(state = State.Content, places = places)
             }
         }
     }
