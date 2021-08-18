@@ -14,5 +14,5 @@
 
 ***
 Перед сборкой проекта пропишите в local.properties:  
-MAPBOX_DOWNLOADS_TOKEN = Ваш ключ Mapbox
+MAPBOX_DOWNLOADS_TOKEN = Ваш ключ Mapbox  
 PLACES_API_KEY = Ваш ключ Google Places API
